@@ -1,18 +1,11 @@
-# Canarias Accesible · Mapa
+# Canarias Accesible Mapa v2
 
-PWA independiente para consultar instalaciones geolocalizadas. No modifica ni sustituye la aplicación anterior.
+PWA independiente con mapa histórico KML y pedidos de Oliver/Bernardo.
 
-## Datos iniciales
-- 1257 instalaciones geolocalizadas importadas del KML.
-- 75 registros de Oliver/Bernardo detectados en el Excel.
-- 0 coincidencias automáticas por número de instalación.
-- 75 registros del Excel pendientes de dirección/coordenadas.
-
-## Ejecutar localmente
-```bash
-python -m http.server 8000
-```
-Abrir `http://localhost:8000`.
-
-## Publicación
-Crear un repositorio nuevo, por ejemplo `canarias-accesible-mapa`, subir estos archivos y activar GitHub Pages desde la rama principal.
+## Novedades v2
+- Corrige números de instalación del Excel.
+- Personalización global y por instalación de color, forma y tamaño.
+- Ficha ampliada con todos los campos disponibles.
+- Asignación/corrección de coordenadas tocando el mapa.
+- Aviso claro cuando un filtro por técnico solo contiene registros sin ubicación.
+- Cambios guardados localmente y protegidos frente a actualizaciones.
