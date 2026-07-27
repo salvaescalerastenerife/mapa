@@ -1,1 +1,7 @@
-{"kml_geolocated": 1257, "excel_selected": 75, "matched": 0, "excel_unlocated": 75, "total": 1332, "generated": "2026-07-27T10:37:39"}
+{
+  "total": 1332,
+  "mapped": 1257,
+  "unmapped": 75,
+  "oliver": 29,
+  "bernardo": 46
+}
