@@ -19,3 +19,6 @@ Abre la misma app, entra en **Copia máster > Importar copia máster** y selecci
 - Campo único para pegar las coordenadas completas copiadas desde Google Maps.
 - Separación automática de latitud y longitud, incluso con paréntesis y espacios.
 - Campos individuales compatibles con el signo negativo en iPhone.
+
+
+Corrección 6.1: restaurados data/installations.json y data/summary.json, omitidos por error en el ZIP v6.
