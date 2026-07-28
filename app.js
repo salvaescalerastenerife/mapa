@@ -1,7 +1,7 @@
 let base=[],all=[],filtered=[],markers=L.layerGroup(),map,deferredPrompt,current=null,pickMode=false,tempMarker=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const STORE='ca-mapa-overrides-v3', STYLE='ca-mapa-styles-v3';
+const STORE='ca-mapa-overrides-v3', STYLE='ca-mapa-styles-v3', MASTER='ca-mapa-master-v4';
 const defaults={size:6,kml:{color:'#2f80ed',shape:'circle'},OLIVER:{color:'#f2994a',shape:'square'},BERNARDO:{color:'#9b51e0',shape:'diamond'},POSTVENTA:{color:'#27ae60',shape:'circle'},pending:{color:'#9aa8b6',shape:'circle'}};
 let styles=loadStyles();
 function loadStyles(){try{return {...structuredClone(defaults),...JSON.parse(localStorage.getItem(STYLE)||'{}')}}catch{return structuredClone(defaults)}}
@@ -17,11 +17,11 @@ async function init(){
 }
 function bind(){
   $('#search').addEventListener('input',render);$('#tech').addEventListener('change',render);$('#source').addEventListener('change',render);
-  $('#fit').onclick=()=>map.setView([28.35,-15.9],7);$('#closeDetail').onclick=closeDetail;$('#styleBtn').onclick=openStyles;
+  $('#fit').onclick=()=>map.setView([28.35,-15.9],7);$('#closeDetail').onclick=closeDetail;$('#styleBtn').onclick=openStyles;$('#backupBtn').onclick=openBackup;
   $$('[data-close]').forEach(b=>b.onclick=()=>$('#'+b.dataset.close).hidden=true);
   $$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#source').value=b.dataset.view==='pending'?'unmapped':'';render()});
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('#installBtn').hidden=false});
-  $('#installBtn').onclick=()=>deferredPrompt?.prompt();$('#excelFile').addEventListener('change',importExcel);
+  $('#installBtn').onclick=()=>deferredPrompt?.prompt();$('#excelFile').addEventListener('change',importExcel);$('#exportBackup').onclick=exportMasterBackup;$('#backupFile').addEventListener('change',importMasterBackup);
   $('#pointSize').addEventListener('input',()=>{styles.size=Number($('#pointSize').value);saveStyles()});
   $('#resetStyles').onclick=()=>{styles=structuredClone(defaults);saveStyles();openStyles()};
   $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;
@@ -80,6 +80,41 @@ function show(x){
   $('#customShape').value=x.customShape||st.shape||'circle';$('#savePointStyle').onclick=()=>saveOverride(x.id,{customColor:$('#customColor').value,customShape:$('#customShape').value});$('#editLocation').onclick=()=>openLocation(x);if(x.lat!=null)map.setView([x.lat,x.lng],16);
 }
 function closeDetail(){$('#detail').hidden=true;$('#list').hidden=false;$('#closeDetail').hidden=true;current=null}
+
+function openBackup(){
+  const o=overrides(),mapped=all.filter(x=>x.lat!=null).length,manual=all.filter(x=>String(x.coordinateSource||'').toLowerCase().includes('manual')||String(x.coordinateSource||'').toLowerCase().includes('confirmada')).length;
+  $('#backupSummary').innerHTML=[[all.length,'Instalaciones'],[mapped,'Con coordenadas'],[Object.keys(o).length,'Cambios locales'],[manual,'Ubicaciones revisadas']].map(x=>`<div class="stat"><b>${x[0].toLocaleString('es-ES')}</b><span>${x[1]}</span></div>`).join('');
+  $('#backupStatus').hidden=true;$('#backupPanel').hidden=false;
+}
+function backupPayload(){
+  return {format:'canarias-accesible-master-backup',version:1,createdAt:new Date().toISOString(),appVersion:'4.0',recordCount:all.length,base,overrides:overrides(),styles,meta:{mapped:all.filter(x=>x.lat!=null).length,pending:all.filter(x=>x.lat==null).length}};
+}
+function downloadJson(payload,name){
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function exportMasterBackup(){
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  downloadJson(backupPayload(),`Canarias-Accesible-MASTER-${stamp}.json`);
+  $('#backupStatus').hidden=false;$('#backupStatus').innerHTML='<b>Copia máster exportada.</b> Guárdala en Archivos, iCloud Drive, AirDrop o WhatsApp para llevarla al otro dispositivo.';
+}
+function isValidBackup(data){
+  return data&&data.format==='canarias-accesible-master-backup'&&Number(data.version)>=1&&Array.isArray(data.base)&&data.base.length>0&&data.overrides&&typeof data.overrides==='object'&&data.styles&&typeof data.styles==='object';
+}
+async function importMasterBackup(e){
+  const file=e.target.files[0];if(!file)return;
+  try{
+    const data=JSON.parse(await file.text());
+    if(!isValidBackup(data))throw new Error('El archivo no es una copia máster válida de Canarias Accesible.');
+    const ok=confirm(`Se importarán ${data.base.length.toLocaleString('es-ES')} instalaciones.\n\nEl estado actual de este dispositivo será sustituido, aunque antes se descargará una copia automática de seguridad.\n\n¿Continuar?`);
+    if(!ok)return;
+    const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');downloadJson(backupPayload(),`Canarias-Accesible-AUTOBACKUP-${stamp}.json`);
+    base=data.base;localStorage.setItem(STORE,JSON.stringify(data.overrides));styles={...structuredClone(defaults),...data.styles};localStorage.setItem(STYLE,JSON.stringify(styles));localStorage.setItem(MASTER,JSON.stringify({importedAt:new Date().toISOString(),sourceCreatedAt:data.createdAt||'',recordCount:data.base.length}));
+    mergeData();closeDetail();map.setView([28.35,-15.9],7);openBackup();
+    $('#backupStatus').hidden=false;$('#backupStatus').innerHTML=`<b>Copia máster importada correctamente.</b> ${all.length.toLocaleString('es-ES')} instalaciones y ${all.filter(x=>x.lat!=null).length.toLocaleString('es-ES')} ubicaciones disponibles.`;
+  }catch(err){alert('No se pudo importar la copia máster: '+err.message)}finally{e.target.value=''}
+}
+
 function openStyles(){
   const defs=[['kml','Históricas / sin técnico'],['OLIVER','Oliver'],['BERNARDO','Bernardo'],['POSTVENTA','Post Venta']];
   $('#styleRows').innerHTML=defs.map(([k,n])=>`<div class="style-row"><strong>${n}</strong><input data-style="${k}" data-key="color" type="color" value="${styles[k].color}"><select data-style="${k}" data-key="shape"><option value="circle">Círculo</option><option value="square">Cuadrado</option><option value="diamond">Rombo</option></select></div>`).join('');

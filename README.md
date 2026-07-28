@@ -1,12 +1,16 @@
-# Canarias Accesible · Mapa v3
+# Canarias Accesible Mapa v4
 
-Versión actualizada con el Excel `InsCanarias28072026.xlsx` y el KML histórico.
+## Novedad principal
+Incluye copia de seguridad máster completa en JSON.
 
-## Datos
-- 2.010 registros procedentes del Excel del 28/07/2026.
-- 1.248 coincidencias exactas con coordenadas del KML.
-- 2 registros adicionales conservados únicamente desde el KML.
-- Las coordenadas del KML se consideran manuales y nunca se sobrescriben automáticamente.
+### Exportar
+Pulsa **Copia máster > Exportar copia máster**. El archivo incluye:
+- Base completa de instalaciones
+- Coordenadas KML protegidas
+- Ubicaciones y correcciones manuales
+- Datos importados desde Excel
+- Personalización global e individual de marcadores
+- Observaciones y cambios locales
 
-## Actualización
-La app permite importar versiones futuras del Excel. Los registros se cruzan por `Cód. instalación`; las coordenadas y correcciones manuales existentes se conservan.
+### Importar en otro dispositivo
+Abre la misma app, entra en **Copia máster > Importar copia máster** y selecciona el JSON. Antes de sustituir los datos del dispositivo se descarga automáticamente una copia de seguridad del estado anterior.
