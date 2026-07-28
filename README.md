@@ -1,11 +1,12 @@
-# Canarias Accesible Mapa v2
+# Canarias Accesible · Mapa v3
 
-PWA independiente con mapa histórico KML y pedidos de Oliver/Bernardo.
+Versión actualizada con el Excel `InsCanarias28072026.xlsx` y el KML histórico.
 
-## Novedades v2
-- Corrige números de instalación del Excel.
-- Personalización global y por instalación de color, forma y tamaño.
-- Ficha ampliada con todos los campos disponibles.
-- Asignación/corrección de coordenadas tocando el mapa.
-- Aviso claro cuando un filtro por técnico solo contiene registros sin ubicación.
-- Cambios guardados localmente y protegidos frente a actualizaciones.
+## Datos
+- 2.010 registros procedentes del Excel del 28/07/2026.
+- 1.248 coincidencias exactas con coordenadas del KML.
+- 2 registros adicionales conservados únicamente desde el KML.
+- Las coordenadas del KML se consideran manuales y nunca se sobrescriben automáticamente.
+
+## Actualización
+La app permite importar versiones futuras del Excel. Los registros se cruzan por `Cód. instalación`; las coordenadas y correcciones manuales existentes se conservan.
