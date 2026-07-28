@@ -25,7 +25,8 @@ function bind(){
   $('#installBtn').onclick=()=>deferredPrompt?.prompt();$('#excelFile').addEventListener('change',importExcel);$('#exportBackup').onclick=exportMasterBackup;$('#backupFile').addEventListener('change',importMasterBackup);
   $('#pointSize').addEventListener('input',()=>{styles.size=Number($('#pointSize').value);saveStyles()});
   $('#resetStyles').onclick=()=>{styles=structuredClone(defaults);saveStyles();openStyles()};
-  $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;$('#openGoogleMaps').onclick=openInGoogleMaps;$('#useGps').onclick=useCurrentGps;$('#pickOnMap').onclick=startMapPicking;$('#applyCoordinates').onclick=applyFullCoordinates;$('#fullCoordinates').addEventListener('paste',()=>setTimeout(()=>applyFullCoordinates(true),0));$('#fullCoordinates').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyFullCoordinates()}});
+  const bindIfPresent=(selector,event,handler)=>{const el=$(selector);if(el)el.addEventListener(event,handler)};
+  bindIfPresent('#saveLocation','click',saveLocation);bindIfPresent('#cancelLocation','click',closeLocation);bindIfPresent('#geocodeAddress','click',geocodeCurrent);bindIfPresent('#openGoogleMaps','click',openInGoogleMaps);bindIfPresent('#useGps','click',useCurrentGps);bindIfPresent('#pickOnMap','click',startMapPicking);bindIfPresent('#applyCoordinates','click',applyFullCoordinates);bindIfPresent('#fullCoordinates','paste',()=>setTimeout(()=>applyFullCoordinates(true),0));bindIfPresent('#fullCoordinates','keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyFullCoordinates()}});
   map.on('click',e=>{if(!pickMode)return;setPicked(e.latlng.lat,e.latlng.lng,'Punto seleccionado manualmente en el mapa.')});
 }
 function render(){

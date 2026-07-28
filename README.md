@@ -1,5 +1,3 @@
-# Canarias Accesible Mapa v6.2
+# Canarias Accesible Mapa v6.3
 
-Versión robusta con las 2.010 instalaciones incrustadas en `app.js`. No necesita carpeta `data`.
-
-Sube directamente a la raíz del repositorio todos los archivos incluidos en el ZIP.
+Corrección del arranque: se restauran los botones de Google Maps, GPS y selección manual, y todos los controles opcionales se enlazan de forma segura para evitar que un elemento ausente detenga toda la app.
