@@ -1,7 +1,10 @@
 {
-  "total": 1332,
-  "mapped": 1257,
-  "unmapped": 75,
-  "oliver": 29,
-  "bernardo": 46
+  "total": 2012,
+  "mapped": 1250,
+  "pending": 762,
+  "oliver": 344,
+  "bernardo": 685,
+  "oliverMapped": 84,
+  "bernardoMapped": 311,
+  "updated": "28/07/2026"
 }
