@@ -24,7 +24,7 @@ function bind(){
   $('#installBtn').onclick=()=>deferredPrompt?.prompt();$('#excelFile').addEventListener('change',importExcel);$('#exportBackup').onclick=exportMasterBackup;$('#backupFile').addEventListener('change',importMasterBackup);
   $('#pointSize').addEventListener('input',()=>{styles.size=Number($('#pointSize').value);saveStyles()});
   $('#resetStyles').onclick=()=>{styles=structuredClone(defaults);saveStyles();openStyles()};
-  $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;$('#openGoogleMaps').onclick=openInGoogleMaps;$('#useGps').onclick=useCurrentGps;$('#pickOnMap').onclick=startMapPicking;
+  $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;$('#openGoogleMaps').onclick=openInGoogleMaps;$('#useGps').onclick=useCurrentGps;$('#pickOnMap').onclick=startMapPicking;$('#applyCoordinates').onclick=applyFullCoordinates;$('#fullCoordinates').addEventListener('paste',()=>setTimeout(()=>applyFullCoordinates(true),0));$('#fullCoordinates').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyFullCoordinates()}});
   map.on('click',e=>{if(!pickMode)return;setPicked(e.latlng.lat,e.latlng.lng,'Punto seleccionado manualmente en el mapa.')});
 }
 function render(){
@@ -123,11 +123,42 @@ function openStyles(){
 function saveStyles(){localStorage.setItem(STYLE,JSON.stringify(styles));drawMarkers();list()}
 function openLocation(x){
   current=x;pickMode=true;$('#locationPanel').hidden=false;$('#editAddress').value=x.address||'';$('#editLat').value=x.lat??'';$('#editLng').value=x.lng??'';$('#geocodeResults').hidden=true;$('#geocodeResults').innerHTML='';
-  $('#pickStatus').textContent=x.coordinateSource==='KML manual'?'Ubicación del KML protegida. Solo se cambiará si guardas una corrección manual.':'Puedes buscar la dirección o tocar el mapa.';
+  $('#fullCoordinates').value='';$('#coordinatePasteStatus').textContent='';
+  $('#pickStatus').textContent=x.coordinateSource==='KML manual'?'Ubicación del KML protegida. Solo se cambiará si guardas una corrección manual.':'Puedes buscar la dirección, pegar las coordenadas o tocar el mapa.';
   if(x.lat!=null){map.setView([x.lat,x.lng],17);tempMarker=L.marker([x.lat,x.lng]).addTo(map)}else map.setView([28.35,-15.9],7);
 }
 function closeLocation(){pickMode=false;$('#locationPanel').hidden=true;if(tempMarker){map.removeLayer(tempMarker);tempMarker=null}}
 function setPicked(lat,lng,msg){$('#editLat').value=Number(lat).toFixed(7);$('#editLng').value=Number(lng).toFixed(7);$('#pickStatus').textContent=msg;$('#locationPanel').hidden=false;if(tempMarker)map.removeLayer(tempMarker);tempMarker=L.marker([lat,lng]).addTo(map);map.setView([lat,lng],17)}
+
+function parseCoordinatePair(value){
+  const raw=String(value||'').trim();
+  if(!raw)return null;
+  const matches=raw.match(/[-+]?\d{1,3}(?:[.,]\d+)?/g);
+  if(!matches||matches.length<2)return null;
+  const nums=matches.slice(0,2).map(v=>Number(v.replace(',','.')));
+  if(!nums.every(Number.isFinite))return null;
+  let [lat,lng]=nums;
+  // Si vienen invertidas, las recoloca cuando la segunda parece latitud canaria.
+  if((lat<-19||lat>-13)&&(lng>=27&&lng<=30)) [lat,lng]=[lng,lat];
+  if(lat<27||lat>30||lng<-19||lng>-13)return null;
+  return {lat,lng};
+}
+function applyFullCoordinates(silent=false){
+  const field=$('#fullCoordinates'),status=$('#coordinatePasteStatus');
+  const pair=parseCoordinatePair(field.value);
+  if(!pair){
+    status.textContent=field.value.trim()?'No pude reconocer dos coordenadas válidas de Canarias. Pega el texto completo que muestra Google Maps.':'';
+    if(!silent&&field.value.trim())field.focus();
+    return false;
+  }
+  $('#editLat').value=pair.lat.toFixed(7);
+  $('#editLng').value=pair.lng.toFixed(7);
+  field.value=`${pair.lat.toFixed(7)}, ${pair.lng.toFixed(7)}`;
+  status.textContent='Coordenadas separadas correctamente. Comprueba el punto y guarda la ubicación.';
+  setPicked(pair.lat,pair.lng,'Coordenadas pegadas desde Google Maps. Comprueba visualmente el punto antes de guardar.');
+  return true;
+}
+
 function cleanAddress(value){
   return String(value||'').trim()
     .replace(/\bC\/?\s*/gi,'Calle ')

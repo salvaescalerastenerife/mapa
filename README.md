@@ -1,16 +1,21 @@
-# Canarias Accesible · Mapa v5
+# Canarias Accesible Mapa v4
 
-Versión con búsqueda de direcciones reforzada y copia máster.
+## Novedad principal
+Incluye copia de seguridad máster completa en JSON.
 
-## Novedades v5
-- Normalización automática de abreviaturas habituales: C/, Avda., Ctra., Nº y S/N.
-- Búsqueda escalonada con distintas combinaciones de calle, código postal, municipio, isla y país.
-- Resultados múltiples con indicación del nivel aproximado de precisión.
-- Botón para abrir la dirección en Google Maps.
-- Botón para usar la ubicación GPS del dispositivo.
-- Modo para elegir la ubicación tocando directamente el mapa.
-- Las coordenadas del KML y las correcciones manuales siguen protegidas durante futuras importaciones.
-- Exportación e importación de copia de seguridad máster completa.
+### Exportar
+Pulsa **Copia máster > Exportar copia máster**. El archivo incluye:
+- Base completa de instalaciones
+- Coordenadas KML protegidas
+- Ubicaciones y correcciones manuales
+- Datos importados desde Excel
+- Personalización global e individual de marcadores
+- Observaciones y cambios locales
 
-## Actualización
-Sustituye los archivos del repositorio de esta app por los contenidos de esta carpeta. No afecta a ninguna otra aplicación ni repositorio.
+### Importar en otro dispositivo
+Abre la misma app, entra en **Copia máster > Importar copia máster** y selecciona el JSON. Antes de sustituir los datos del dispositivo se descarga automáticamente una copia de seguridad del estado anterior.
+
+## Versión 6
+- Campo único para pegar las coordenadas completas copiadas desde Google Maps.
+- Separación automática de latitud y longitud, incluso con paréntesis y espacios.
+- Campos individuales compatibles con el signo negativo en iPhone.
