@@ -1,7 +1,7 @@
 let base=[],all=[],filtered=[],markers=L.layerGroup(),map,deferredPrompt,current=null,pickMode=false,tempMarker=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const STORE='ca-mapa-overrides-v3', STYLE='ca-mapa-styles-v3', MASTER='ca-mapa-master-v4';
+const STORE='ca-mapa-overrides-v3', STYLE='ca-mapa-styles-v3', MASTER='ca-mapa-master-v5';
 const defaults={size:6,kml:{color:'#2f80ed',shape:'circle'},OLIVER:{color:'#f2994a',shape:'square'},BERNARDO:{color:'#9b51e0',shape:'diamond'},POSTVENTA:{color:'#27ae60',shape:'circle'},pending:{color:'#9aa8b6',shape:'circle'}};
 let styles=loadStyles();
 function loadStyles(){try{return {...structuredClone(defaults),...JSON.parse(localStorage.getItem(STYLE)||'{}')}}catch{return structuredClone(defaults)}}
@@ -24,7 +24,7 @@ function bind(){
   $('#installBtn').onclick=()=>deferredPrompt?.prompt();$('#excelFile').addEventListener('change',importExcel);$('#exportBackup').onclick=exportMasterBackup;$('#backupFile').addEventListener('change',importMasterBackup);
   $('#pointSize').addEventListener('input',()=>{styles.size=Number($('#pointSize').value);saveStyles()});
   $('#resetStyles').onclick=()=>{styles=structuredClone(defaults);saveStyles();openStyles()};
-  $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;
+  $('#saveLocation').onclick=saveLocation;$('#cancelLocation').onclick=closeLocation;$('#geocodeAddress').onclick=geocodeCurrent;$('#openGoogleMaps').onclick=openInGoogleMaps;$('#useGps').onclick=useCurrentGps;$('#pickOnMap').onclick=startMapPicking;
   map.on('click',e=>{if(!pickMode)return;setPicked(e.latlng.lat,e.latlng.lng,'Punto seleccionado manualmente en el mapa.')});
 }
 function render(){
@@ -122,22 +122,87 @@ function openStyles(){
 }
 function saveStyles(){localStorage.setItem(STYLE,JSON.stringify(styles));drawMarkers();list()}
 function openLocation(x){
-  current=x;pickMode=true;$('#locationPanel').hidden=false;$('#editAddress').value=x.address||'';$('#editLat').value=x.lat??'';$('#editLng').value=x.lng??'';
+  current=x;pickMode=true;$('#locationPanel').hidden=false;$('#editAddress').value=x.address||'';$('#editLat').value=x.lat??'';$('#editLng').value=x.lng??'';$('#geocodeResults').hidden=true;$('#geocodeResults').innerHTML='';
   $('#pickStatus').textContent=x.coordinateSource==='KML manual'?'Ubicación del KML protegida. Solo se cambiará si guardas una corrección manual.':'Puedes buscar la dirección o tocar el mapa.';
   if(x.lat!=null){map.setView([x.lat,x.lng],17);tempMarker=L.marker([x.lat,x.lng]).addTo(map)}else map.setView([28.35,-15.9],7);
 }
 function closeLocation(){pickMode=false;$('#locationPanel').hidden=true;if(tempMarker){map.removeLayer(tempMarker);tempMarker=null}}
-function setPicked(lat,lng,msg){$('#editLat').value=Number(lat).toFixed(7);$('#editLng').value=Number(lng).toFixed(7);$('#pickStatus').textContent=msg;if(tempMarker)map.removeLayer(tempMarker);tempMarker=L.marker([lat,lng]).addTo(map);map.setView([lat,lng],17)}
-async function geocodeCurrent(){
-  const address=$('#editAddress').value.trim();if(!address){alert('Escribe una dirección completa.');return}
-  $('#pickStatus').textContent='Buscando la dirección…';$('#geocodeAddress').disabled=true;
-  try{
-    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=es&q='+encodeURIComponent(address);
-    const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('respuesta '+res.status);
-    const list=await res.json();if(!list.length){$('#pickStatus').textContent='No se encontró una coincidencia. Prueba añadiendo municipio e isla.';return}
-    setPicked(Number(list[0].lat),Number(list[0].lon),'Resultado automático encontrado. Revísalo en el mapa antes de guardar.');
-  }catch(err){$('#pickStatus').textContent='No se pudo buscar ahora. Puedes tocar manualmente el mapa.'}finally{$('#geocodeAddress').disabled=false}
+function setPicked(lat,lng,msg){$('#editLat').value=Number(lat).toFixed(7);$('#editLng').value=Number(lng).toFixed(7);$('#pickStatus').textContent=msg;$('#locationPanel').hidden=false;if(tempMarker)map.removeLayer(tempMarker);tempMarker=L.marker([lat,lng]).addTo(map);map.setView([lat,lng],17)}
+function cleanAddress(value){
+  return String(value||'').trim()
+    .replace(/\bC\/?\s*/gi,'Calle ')
+    .replace(/\bAVDA?\.?\s*/gi,'Avenida ')
+    .replace(/\bCTRA\.?\s*/gi,'Carretera ')
+    .replace(/\bN[º°\.]?\s*/gi,' ')
+    .replace(/\bS\/?N\b/gi,'')
+    .replace(/\s*,\s*/g,', ')
+    .replace(/\s{2,}/g,' ')
+    .replace(/,+/g,',')
+    .trim();
 }
+function addressQueries(){
+  const typed=cleanAddress($('#editAddress').value), x=current||{};
+  const street=cleanAddress(x.street||typed.split(',')[0]||'');
+  const postal=String(x.postalCode||'').trim(), municipality=String(x.municipality||'').trim(), province=String(x.province||'Las Palmas').trim();
+  const place=municipality||typed.split(',').slice(1).join(',').trim();
+  const variants=[
+    typed,
+    [street,postal,place,'Canarias','España'].filter(Boolean).join(', '),
+    [street,place,'Gran Canaria','España'].filter(Boolean).join(', '),
+    [street,postal,'Telde','Gran Canaria','España'].filter(Boolean).join(', '),
+    [street,place,province,'España'].filter(Boolean).join(', '),
+    [postal,place,'Canarias','España'].filter(Boolean).join(', ')
+  ];
+  return [...new Set(variants.map(cleanAddress).filter(q=>q.length>4))];
+}
+function precisionLabel(item){
+  const t=String(item.type||'').toLowerCase(), c=String(item.class||'').toLowerCase();
+  if(['house','building','residential'].includes(t)||c==='building')return'Portal o edificio';
+  if(['road','street','pedestrian'].includes(t)||c==='highway')return'Calle aproximada';
+  if(['postcode'].includes(t))return'Código postal';
+  if(['suburb','neighbourhood','quarter'].includes(t))return'Barrio o zona';
+  return'Municipio o zona aproximada';
+}
+function renderGeocodeResults(items){
+  const box=$('#geocodeResults');
+  if(!items.length){box.hidden=true;box.innerHTML='';return}
+  box.hidden=false;box.innerHTML='<h3>Coincidencias encontradas</h3>'+items.map((r,i)=>`<button type="button" class="geo-result" data-geo="${i}"><strong>${esc(r.display_name)}</strong><span>Lat. ${Number(r.lat).toFixed(6)} · Long. ${Number(r.lon).toFixed(6)}</span><span class="precision">${precisionLabel(r)}</span></button>`).join('');
+  $$('[data-geo]').forEach(btn=>btn.onclick=()=>{const r=items[Number(btn.dataset.geo)];setPicked(Number(r.lat),Number(r.lon),`${precisionLabel(r)} seleccionada. Comprueba visualmente el punto antes de guardar.`)});
+}
+async function nominatimSearch(q){
+  const params=new URLSearchParams({format:'jsonv2',limit:'5',countrycodes:'es',addressdetails:'1',dedupe:'1',viewbox:'-18.6,29.5,-13.2,27.3',bounded:'1',q});
+  const res=await fetch('https://nominatim.openstreetmap.org/search?'+params.toString(),{headers:{Accept:'application/json','Accept-Language':'es'}});
+  if(!res.ok)throw new Error('respuesta '+res.status);
+  return res.json();
+}
+async function geocodeCurrent(){
+  const address=$('#editAddress').value.trim();if(!address){alert('Escribe una dirección.');return}
+  $('#pickStatus').textContent='Limpiando y buscando varias formas de la dirección…';$('#geocodeAddress').disabled=true;renderGeocodeResults([]);
+  try{
+    const found=[],seen=new Set(),queries=addressQueries();
+    for(let i=0;i<queries.length&&found.length<5;i++){
+      const list=await nominatimSearch(queries[i]);
+      for(const r of list){const key=Number(r.lat).toFixed(5)+','+Number(r.lon).toFixed(5);if(!seen.has(key)){seen.add(key);found.push(r)}}
+      if(found.length)break;
+    }
+    if(!found.length){$('#pickStatus').textContent='No apareció ninguna coincidencia fiable. Prueba corrigiendo el municipio, abre Google Maps o elige el punto tocando el mapa.';return}
+    renderGeocodeResults(found.slice(0,5));
+    $('#pickStatus').textContent=found.length===1?'Se encontró una opción. Revísala antes de guardar.':`Se encontraron ${Math.min(found.length,5)} opciones. Elige la correcta.`;
+  }catch(err){$('#pickStatus').textContent='El servicio de búsqueda no respondió. Puedes abrir Google Maps, usar el GPS o tocar el mapa.'}finally{$('#geocodeAddress').disabled=false}
+}
+function openInGoogleMaps(){
+  const q=cleanAddress($('#editAddress').value);if(!q){alert('Escribe primero una dirección.');return}
+  window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q),'_blank','noopener');
+}
+function useCurrentGps(){
+  if(!navigator.geolocation){$('#pickStatus').textContent='Este navegador no permite obtener la ubicación.';return}
+  $('#pickStatus').textContent='Solicitando la ubicación del iPhone…';$('#useGps').disabled=true;
+  navigator.geolocation.getCurrentPosition(pos=>{setPicked(pos.coords.latitude,pos.coords.longitude,`Ubicación GPS obtenida con una precisión aproximada de ${Math.round(pos.coords.accuracy)} m. Comprueba el punto antes de guardar.`);$('#useGps').disabled=false},err=>{$('#pickStatus').textContent=err.code===1?'Permiso de ubicación denegado. Actívalo en los ajustes de Safari para esta web.':'No se pudo obtener una posición GPS fiable.';$('#useGps').disabled=false},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function startMapPicking(){
+  pickMode=true;$('#locationPanel').hidden=true;$('#pickStatus').textContent='Toca el punto exacto en el mapa.';
+}
+
 function saveLocation(){
   if(!current)return;const lat=Number($('#editLat').value),lng=Number($('#editLng').value);
   if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat<27||lat>30||lng<-19||lng>-13){alert('Revisa las coordenadas. Deben corresponder a Canarias.');return}

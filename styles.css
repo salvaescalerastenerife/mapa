@@ -3,3 +3,12 @@
 .backup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
 .backup-actions button,.backup-actions .import{min-height:48px;display:flex;align-items:center;justify-content:center;text-align:center}
 @media(max-width:560px){.backup-actions{grid-template-columns:1fr}}
+.location-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.location-tools button{min-height:46px}
+.geocode-results{margin:12px 0;padding:10px;border:1px solid #dce5ed;border-radius:12px;background:#f7fafc}
+.geocode-results h3{font-size:.88rem;margin:0 0 8px}
+.geo-result{width:100%;text-align:left;background:white;border:1px solid #dce5ed;margin:6px 0;padding:10px}
+.geo-result strong{display:block;font-size:.86rem;color:#123a63}
+.geo-result span{display:block;font-size:.76rem;color:#66778a;margin-top:3px;font-weight:500}
+.precision{display:inline-block!important;width:auto;padding:2px 6px;border-radius:99px;background:#e7eef5;color:#123a63!important;margin-top:6px!important;font-size:.68rem!important}
+@media(max-width:480px){.location-tools{grid-template-columns:1fr}.location-card{max-height:92vh}}
